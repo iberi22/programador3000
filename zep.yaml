@@ -1,0 +1,25 @@
+# This secret should be kept secret between the Zep service and the client.
+# It can be any string value.
+api_secret: "a-very-secret-key"
+
+# The type of store to use. Can be "postgres".
+store:
+  type: postgres
+
+# PostgreSQL connection details. Required if store.type is "postgres".
+postgres:
+  dsn: "postgres://postgres:postgres@zep-postgres:5432/zep?sslmode=disable"
+
+# Server configuration
+server:
+  host: 0.0.0.0
+  port: 8000
+
+# LLM configuration for the extractor
+extractor:
+  llm:
+    provider: gemini
+
+# Log level
+log:
+  level: info
