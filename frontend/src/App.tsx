@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { EnhancedLayout } from "@/components/enhanced/EnhancedLayout";
 import { SpecializedAgentToggle } from "@/components/specialized/SpecializedAgentToggle";
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 
 import LoginPage from "@/pages/LoginPage";
@@ -40,9 +41,9 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          // <ProtectedRoute>
+          <ProtectedRoute>
             <AppContent />
-          // </ProtectedRoute>
+          </ProtectedRoute>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

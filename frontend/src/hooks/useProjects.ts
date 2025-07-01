@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { getApiBaseUrl } from '../config/api';
+// import { getApiBaseUrl } from '../config/api'; // No longer needed directly here
+import { apiClient, ApiError } from '../../utils/apiClient'; // apiClient handles getApiBaseUrl
 
 // Types matching the backend Pydantic models
 export interface Project {
@@ -230,7 +231,7 @@ export interface ProjectOrchestratorResponse {
   error?: string;
 }
 
-const API_BASE = `${getApiBaseUrl()}/projects`;
+// const API_BASE = `${getApiBaseUrl()}/projects`; // No longer needed, apiClient handles base URL
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -244,26 +245,23 @@ export const useProjects = () => {
       setError(null);
 
       try {
-        const response = await fetch(`${API_BASE}/${projectId}`, {
+        const updatedProject: Project = await apiClient(`/projects/${projectId}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(data),
         });
-
-        if (!response.ok) {
-          throw new Error(`Failed to update project: ${response.statusText}`);
-        }
-
-        const updatedProject: Project = await response.json();
         // Update local state
         setProjects((prev) =>
           prev.map((p) => (p.id === projectId ? updatedProject : p))
         );
         return updatedProject;
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to update project');
+        if (err instanceof ApiError) {
+          setError(`Error ${err.status}: ${err.message}`);
+        } else if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Failed to update project');
+        }
         return null;
       } finally {
         setLoading(false);
@@ -289,16 +287,16 @@ export const useProjects = () => {
       if (filters?.limit) params.append('limit', filters.limit.toString());
       if (filters?.offset) params.append('offset', filters.offset.toString());
 
-      const response = await fetch(`${API_BASE}?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch projects: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await apiClient<Project[]>(`/projects?${params}`);
       setProjects(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch projects');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to fetch projects');
+      }
     } finally {
       setLoading(false);
     }
@@ -310,23 +308,20 @@ export const useProjects = () => {
     setError(null);
 
     try {
-      const response = await fetch(API_BASE, {
+      const newProject = await apiClient<Project>('/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(projectData),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create project: ${response.statusText}`);
-      }
-
-      const newProject = await response.json();
       setProjects(prev => [newProject, ...prev]);
       return newProject;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create project');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to create project');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -339,16 +334,16 @@ export const useProjects = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/${projectId}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch project: ${response.statusText}`);
-      }
-
-      const project = await response.json();
+      const project = await apiClient<Project>(`/projects/${projectId}`);
       return project;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch project');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to fetch project');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -364,22 +359,19 @@ export const useProjects = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analyze`, {
+      const analysisResult = await apiClient<CodebaseAnalysisResponse>(`/projects/${projectId}/analyze`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(analysisRequest),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to start analysis: ${response.statusText}`);
-      }
-
-      const analysisResult = await response.json();
       return analysisResult;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze codebase');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to analyze codebase');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -391,20 +383,24 @@ export const useProjects = () => {
     projectId: number,
     analysisId: string
   ): Promise<CodebaseAnalysisResponse | null> => {
+    // Not setting global loading/error for status polling
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analysis/${analysisId}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to get analysis status: ${response.statusText}`);
-      }
-
-      const analysisStatus = await response.json();
+      const analysisStatus = await apiClient<CodebaseAnalysisResponse>(`/projects/${projectId}/analysis/${analysisId}`);
       return analysisStatus;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get analysis status');
+        if (err instanceof ApiError) {
+          console.error(`Analysis status fetch error ${err.status}: ${err.message}`, err.errorData);
+          setError(`Analysis status error: ${err.message}`); // Optionally set global error
+        } else if (err instanceof Error) {
+          console.error(`Analysis status fetch error: ${err.message}`);
+          setError(err.message);
+        } else {
+          console.error('Failed to get analysis status (unknown error)');
+          setError('Failed to get analysis status');
+        }
       return null;
     }
-  }, []);
+  }, [setError]); // Added setError to dependencies as it's used
 
   // Analyze project documentation
   const analyzeDocumentation = useCallback(async (
@@ -415,22 +411,19 @@ export const useProjects = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analyze-docs`, {
+      const analysisResult = await apiClient<DocumentationAnalysisResponse>(`/projects/${projectId}/analyze-docs`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(analysisRequest),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to start documentation analysis: ${response.statusText}`);
-      }
-
-      const analysisResult = await response.json();
       return analysisResult;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze documentation');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to analyze documentation');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -445,17 +438,19 @@ export const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analyze-tasks`, {
+      const result = await apiClient<TaskPlanningResponse>(`/projects/${projectId}/analyze-tasks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to start task planning analysis: ${response.statusText}`);
-      }
-      return await response.json();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze tasks');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to analyze tasks');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -470,17 +465,19 @@ export const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analyze-research`, {
+      const result = await apiClient<ResearchAnalysisResponse>(`/projects/${projectId}/analyze-research`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to start research analysis: ${response.statusText}`);
-      }
-      return await response.json();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze research');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to analyze research');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -495,17 +492,19 @@ export const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/analyze-qa`, {
+      const result = await apiClient<QATestingResponse>(`/projects/${projectId}/analyze-qa`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to start QA analysis: ${response.statusText}`);
-      }
-      return await response.json();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to analyze QA');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to analyze QA');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -520,17 +519,21 @@ export const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/v1/enhanced/agents/code_engineer/tasks`, {
+      // Note: apiClient prepends getApiBaseUrl which is typically /api/v1
+      // So, if the full path was /api/v1/enhanced/..., the path for apiClient is /enhanced/...
+      const result = await apiClient<any>(`/enhanced/agents/code_engineer/tasks`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project_id: projectId, action }),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to create code engineer task: ${response.statusText}`);
-      }
-      return await response.json();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create code engineer task');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to create code engineer task');
+      }
       return null;
     } finally {
       setLoading(false);
@@ -545,17 +548,19 @@ export const useProjects = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/${projectId}/orchestrate`, {
+      const result = await apiClient<ProjectOrchestratorResponse>(`/projects/${projectId}/orchestrate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
       });
-      if (!response.ok) {
-        throw new Error(`Failed to start orchestration: ${response.statusText}`);
-      }
-      return await response.json();
+      return result;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to orchestrate project');
+      if (err instanceof ApiError) {
+        setError(`Error ${err.status}: ${err.message}`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to orchestrate project');
+      }
       return null;
     } finally {
       setLoading(false);
