@@ -140,11 +140,17 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # Optional (for monitoring)
 LANGSMITH_API_KEY=your_langsmith_api_key_here
 
-# Auth0 Configuration (Required for Authentication)
-AUTH0_DOMAIN=your_auth0_domain.auth0.com
-AUTH0_CLIENT_ID=your_auth0_client_id
-AUTH0_CLIENT_SECRET=your_auth0_client_secret
-AUTH0_AUDIENCE=your_auth0_api_audience # e.g., https://your-api-identifier
+# Firebase Configuration (Required for Authentication)
+# These are typically for the frontend (e.g., in frontend/.env)
+# Ensure they are prefixed appropriately (e.g., VITE_ for Vite projects)
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_firebase_app_id
+# For backend Firebase Admin SDK, usually a service account JSON file is used
+# or environment variables like GOOGLE_APPLICATION_CREDENTIALS.
 ```
 
 ### 2. Build and Deploy
@@ -172,6 +178,66 @@ Before running the application, you need to configure Firebase Auth for authenti
     - Store your Firebase configuration securely, typically using environment variables.
     - For the frontend (Vite + React), you'll use variables like `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, etc., in an `.env` file in the `frontend` directory.
     - For the backend, you'll configure Firebase Admin SDK, usually with a service account key file or environment variables.
+
+### Firebase Auth Troubleshooting
+
+If you encounter issues during Firebase Authentication setup or login, check these common problem areas:
+
+*   **Incorrect Firebase Project Configuration**:
+    *   **Issue**: The `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, or `appId` in your frontend configuration (e.g., `frontend/.env`) do not match the values from your Firebase project console.
+    *   **Solution**: Double-check these values in your Firebase project settings (Project settings > General > Your apps > Web app) and ensure they are correctly copied to your `.env` file (e.g., `VITE_FIREBASE_API_KEY=...`). Remember to restart your frontend development server after changes to `.env` files.
+
+*   **Authorized Domains Not Configured**:
+    *   **Issue**: Firebase Auth restricts authentication to requests from authorized domains. If your application's domain (e.g., `localhost` for development, or your production domain) is not listed, authentication will fail.
+    *   **Solution**: In the Firebase console, go to Authentication > Settings > Authorized domains. Add all domains from which your application will be accessed (e.g., `localhost`, `your-app-name.firebaseapp.com`, `your-custom-domain.com`).
+
+*   **GitHub OAuth Provider Not Enabled or Misconfigured**:
+    *   **Issue**: If using GitHub sign-in, the provider might not be enabled in Firebase, or the Client ID and Client Secret might be incorrect.
+    *   **Solution**:
+        1.  In the Firebase console, navigate to Authentication > Sign-in method. Ensure "GitHub" is enabled.
+        2.  Verify that the Client ID and Client Secret provided to Firebase match exactly with those from your GitHub OAuth App settings. Regenerate them in GitHub if unsure.
+
+*   **Incorrect Callback URLs for GitHub OAuth**:
+    *   **Issue**: GitHub OAuth requires a specific callback URL to redirect users after authentication. If this URL is misconfigured in your GitHub OAuth App settings, Firebase won't be able to complete the authentication.
+    *   **Solution**:
+        1.  In your GitHub OAuth App settings, ensure the "Authorization callback URL" is correctly set. Firebase provides this URL when you configure the GitHub sign-in provider in the Firebase console (it typically looks like `https://<your-project-id>.firebaseapp.com/__/auth/handler`).
+        2.  Ensure this URL is not blocked by any network configurations.
+
+*   **Environment Variables Not Loaded Correctly**:
+    *   **Issue**: The Firebase configuration, especially for the frontend (e.g., using Vite `VITE_FIREBASE_...` variables), might not be loaded correctly by the application.
+    *   **Solution**:
+        1.  Ensure your `.env` file is in the correct directory (usually the root of the `frontend` folder for Vite projects).
+        2.  Verify that the environment variables are prefixed correctly (e.g., `VITE_` for Vite).
+        3.  Restart your development server after making changes to `.env` files.
+        4.  For backend Firebase Admin SDK setup, ensure the service account key file path is correct or that the necessary environment variables (like `GOOGLE_APPLICATION_CREDENTIALS`) are properly set and accessible by the backend process.
+
+*   **Pop-ups Blocked**:
+    *   **Issue**: Social sign-ins (like Google or GitHub) often use pop-up windows. If your browser is blocking pop-ups for your application's domain, the sign-in process may fail silently or get stuck.
+    *   **Solution**: Ensure that your browser is not blocking pop-ups for the application's domain. You might need to add an exception for your development (`localhost`) or production URL.
+
+## User Onboarding Flow
+
+This section outlines the steps for a new user to get started with the AI Agent Assistant, from initial authentication to importing their first project.
+
+1.  **Sign Up / Log In**:
+    *   New users can sign up or existing users can log in using the Firebase Authentication system. This supports various methods, including email/password and social logins like Google.
+    *   You can also directly authenticate using your GitHub account via Firebase OAuth, which simplifies the GitHub integration step.
+
+2.  **Connect GitHub Account**:
+    *   If you didn't use GitHub to sign up/log in, or if your GitHub account needs to be (re)connected, navigate to the "Integrations" page from the main menu.
+    *   Select "GitHub" and follow the prompts to authorize the application to access your repositories. This step is essential for importing and analyzing your projects.
+
+3.  **Navigate to GitHub Integration Page**:
+    *   Once your GitHub account is connected, you can access the GitHub integration features. This is typically found under the "Integrations" > "GitHub" section or a dedicated "Projects" / "Import Repository" page.
+
+4.  **Select and Import Repository**:
+    *   On the GitHub integration page, you will see a list of your repositories.
+    *   Browse or search for the repository you wish to work with.
+    *   Select the repository and click "Import" or "Link". This will register the repository with the AI Agent Assistant.
+
+5.  **Automatic Project Analysis**:
+    *   Upon successful import of a repository, the system will automatically trigger the **Code Engineer** agent.
+    *   This agent will perform an initial analysis of your project, which may include understanding the codebase structure, dependencies, and preparing it for further interaction with other specialized agents.
 
 ### 3. Run the Application (Docker Compose)
 
