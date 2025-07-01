@@ -1367,5 +1367,5 @@ Todos los objetivos han sido alcanzados:
 | T512| Backend/Frontend: Disparar agente Code Engineer al importar repos | ALTA      | ✅ Completado | Cascade     | API `/agents/code_engineer/tasks` y llamada automática tras importación |
 | T508| Frontend: Mostrar estado de conexión Firebase Auth/GitHub         | MEDIA     | ⬜ Pendiente | Cascade     | Indicador visual en la UI                  |
 | T509| Pruebas Pytest para Firebase Auth y endpoints seguros             | ALTA      | ⬜ Pendiente | Cascade     | Tests unitarios y de integración backend   |
-| T510| Documentar flujo de onboarding completo en README                 | MEDIA     | ⬜ Pendiente | Cascade     | Desde login hasta importación de proyecto  |
-| T511| Añadir troubleshooting de Firebase Auth a README                  | BAJA      | ⬜ Pendiente | Cascade     | Guía para errores comunes de config.      |
+| T510| Documentar flujo de onboarding completo en README                 | MEDIA     | ✅ Completado | Cascade     | Desde login hasta importación de proyecto  |
+| T511| Añadir troubleshooting de Firebase Auth a README                  | BAJA      | ✅ Completado | Cascade     | Guía para errores comunes de config.      |
