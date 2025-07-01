@@ -1,6 +1,8 @@
 volumes:
   langgraph-data:
     driver: local
+  zep-data:
+    driver: local
 services:
   langgraph-redis:
     image: docker.io/redis:6
@@ -53,8 +55,6 @@ services:
         condition: service_healthy
       zep:
         condition: service_healthy
-      graphiti-mcp-server:
-        condition: service_healthy
     environment:
       # Multi-LLM Provider Support
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -76,10 +76,9 @@ services:
       MAX_CONCURRENT_TASKS: "10"
       HEALTH_CHECK_INTERVAL: "30"
 
-      # Zep/Graphiti Configuration
+      # Zep Configuration
       ZEP_API_URL: http://zep:8000
       ZEP_API_SECRET: "a-very-secret-key"
-      GRAPHITI_MCP_URL: http://graphiti-mcp-server:8000
 
     # Health check for the enhanced API
     healthcheck:
@@ -112,42 +111,10 @@ services:
     environment:
       ZEP_CONFIG_FILE: zep.yaml
     depends_on:
-      neo4j:
+      zep-postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
-  graphiti-mcp-server:
-    build:
-      context: ./backend/src/graphiti_fork/mcp_server
-      dockerfile: Dockerfile
-    container_name: graphiti-mcp-server
-    env_file:
-      - ./.env
-    ports:
-      - "8002:8000"
-    depends_on:
-      neo4j:
-        condition: service_healthy
-    environment:
-      # LLM Configuration
-      LLM_PROVIDER: gemini
-      GOOGLE_API_KEY: ${GEMINI_API_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-} # Optional
-      MODEL_NAME: "gemini-1.5-flash-latest"
-      EMBEDDER_MODEL_NAME: "text-embedding-004"
-
-      # Neo4j Connection
-      NEO4J_URI: bolt://neo4j:7687
-      NEO4J_USER: neo4j
-      NEO4J_PASSWORD: password
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
       timeout: 10s
       retries: 5

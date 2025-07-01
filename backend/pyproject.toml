@@ -25,6 +25,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "langchain-openai",
     "asyncpg",
+    "graphiti-core[google-genai]>=0.13.2",
 ]
 
 [project.optional-dependencies]
