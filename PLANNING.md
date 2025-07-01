@@ -100,7 +100,7 @@ El objetivo inmediato es alcanzar el **100 % de funcionalidad, usabilidad y fiab
 
 - **Frontend - Integración Firebase SDK**: Implementar la lógica para el inicio/cierre de sesión, manejo de tokens JWT, y redirecciones necesarias utilizando el SDK de Firebase para React.
 - **Frontend - UI de Onboarding y Vinculación de GitHub**:
-  - Desarrollar la interfaz para guiar al usuario en la conexión de su cuenta de GitHub (si aún no está vinculada a través de Auth0).
+  - Desarrollar la interfaz para guiar al usuario en la conexión de su cuenta de GitHub (si aún no está vinculada a través de Firebase Auth).
   - Mostrar una lista de los repositorios del usuario.
   - Permitir la selección e importación/vinculación de repositorios al sistema.
 - **Frontend - Estado de Conexión**: Mostrar claramente en la UI si el usuario está autenticado y si su cuenta de GitHub está conectada.
